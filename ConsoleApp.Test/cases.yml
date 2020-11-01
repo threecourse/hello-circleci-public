@@ -1,0 +1,5 @@
+cases:
+  - {name: case1, input_dir: cases/case1}
+  - {name: case2, input_dir: cases/case2}
+  - {name: case3, input_dir: cases/case3}
+  - {name: case4, input_dir: "cases/case 4"} # パスに空白がある場合

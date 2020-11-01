@@ -1,0 +1,87 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: mcr.microsoft.com/dotnet/core/sdk:3.1
+    steps:
+      - checkout
+      - run:
+          name: Install Python
+          command: |
+            apt-get update && apt-get install -y python3.7 python3-pip
+            ln -sf /usr/bin/python3 /usr/bin/python && ln -sf /usr/bin/pip3 /usr/bin/pip
+      - restore_cache:
+          keys:
+            - deps-v2-{{ checksum "poetry.lock" }}
+      - run:
+          name: Install Poetry
+          command: |
+            pip install poetry==1.1.4
+      - run:
+          name: Install Dependencies
+          command: |
+            poetry config virtualenvs.create false && poetry install --no-interaction
+      - save_cache:
+          key: deps-v2-{{ checksum "poetry.lock" }}
+          paths:
+            - /usr/local/lib/python3.7/dist-packages
+            - /usr/local/bin
+  test-unittest:
+    docker:
+      - image: mcr.microsoft.com/dotnet/core/sdk:3.1
+    parallelism: 1  # free plan
+    steps:
+      - checkout
+      - run:
+          name: Install Python
+          command: |
+            apt-get update && apt-get install -y python3.7 python3-pip
+            ln -sf /usr/bin/python3 /usr/bin/python && ln -sf /usr/bin/pip3 /usr/bin/pip
+      - restore_cache:
+          keys:
+            - deps-v2-{{ checksum "poetry.lock" }}
+      - run:
+          command: |
+            ./ConsoleApp/unittest.sh
+      - store_test_results:
+          path: ConsoleApp/ConsoleApp.UnitTest/TestResults
+      - store_artifacts:
+          path: ConsoleApp/ConsoleApp.UnitTest/TestResults
+          destination: unittest-reports
+  test-runtest:
+    docker:
+      - image: mcr.microsoft.com/dotnet/core/sdk:3.1
+    steps:
+      - checkout
+      - run:
+          name: Install Python
+          command: |
+            apt-get update && apt-get install -y python3.7 python3-pip
+            ln -sf /usr/bin/python3 /usr/bin/python && ln -sf /usr/bin/pip3 /usr/bin/pip
+      - restore_cache:
+          keys:
+            - deps-v2-{{ checksum "poetry.lock" }}
+      - run:
+          command: |
+            cd ConsoleApp.Test
+            python test_util.py --generate-case-list
+            circleci tests split cases/cases.txt > /tmp/tests-to-run-python
+                       python test_runner.py $(cat /tmp/tests-to-run-python)
+            python test_util.py --aggregate-result
+      - store_test_results:
+          path: ConsoleApp.Test/result
+      - store_artifacts:
+          path: ConsoleApp.Test/result
+          destination: runtest-results
+
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - build
+      - test-unittest:
+          requires:
+            - build
+      - test-runtest:
+          requires:
+            - build

@@ -1,0 +1,1 @@
+cd ConsoleApp && dotnet test --logger "junit;LogFileName=test-report.xml"

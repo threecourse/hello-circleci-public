@@ -1,0 +1,10 @@
+version: "3"
+services:
+  cspython:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    volumes:
+      - ./ConsoleApp:/app/work/ConsoleApp
+      - ./ConsoleApp.Test:/app/work/ConsoleApp.Test
+    working_dir: /app/work
